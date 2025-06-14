@@ -1,5 +1,10 @@
 # Aura Effects Changelog
 
+## Version 1.2.0
+- Aura Effects aura sheet now extends whatever the base active effect sheet is set to be. This should make it compatible with modules or systems which override the base AE sheet without requiring explicit code to do so (Thanks @mclemente for the idea & implementation!)
+  - Removed plugin behavior, as this should no longer be necessary
+- Fixed a bug when toggling an Aura Effect on an unowned item
+
 ## Version 1.1.0
 - Aura Effects now refresh if necessary on adding/removing effects to an actor (e.g. re-running conditional scripts when they exist)
 - Conditional Scripts now apply to the source actor as well

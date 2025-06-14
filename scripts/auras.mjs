@@ -1,9 +1,8 @@
 import AuraActiveEffectData from "./AuraActiveEffectData.mjs";
-import AuraActiveEffectSheet from "./AuraActiveEffectSheet.mjs";
+import AuraActiveEffectSheetMixin from "./AuraActiveEffectSheet.mjs";
 import { executeScript, getAllAuraEffects, getChangingSceneAuras, getNearbyTokens, getTokenToTokenDistance, isFinalMovementComplete, removeAndReplaceAuras } from "./helpers.mjs";
 import { applyAuraEffects, deleteEffects } from "./queries.mjs";
 import { registerSettings } from "./settings.mjs";
-import { overrideSheets } from "./plugins/pluginHelpers.mjs";
 import { canvasInit, destroyToken, drawGridLayer, drawToken, refreshToken, updateAllVisualizations, updateTokenVisualization } from "./auraVisualization.mjs";
 import { migrate } from "./migrations.mjs";
 import { api } from "./api.mjs";
@@ -36,7 +35,7 @@ async function addRemoveEffect(effect, options, userId) {
     return;
   }
   const [activeSourceEffects, inactiveSourceEffects] = getAllAuraEffects(effect.target);
-  const mainToken = effect.target.getActiveTokens(false, true)[0];
+  const [mainToken] = effect.target.getActiveTokens(false, true);
   if (!mainToken) return;
 
   // Handle source effect condition re-evaluation
@@ -216,7 +215,7 @@ async function updateActiveEffect(effect, updates, options, userId) {
   if (!updates.hasOwnProperty("disabled")) return;
   if (!canvas.scene) return;
   const actor = (effect.parent instanceof Actor) ? effect.parent : effect.parent?.parent;
-  const [token] = actor?.getActiveTokens(false, true);
+  const [token] = actor?.getActiveTokens(false, true) ?? [];
   if (!token) return;
   const activeGM = game.users.activeGM;
   if (!activeGM) {
@@ -335,6 +334,11 @@ function registerAuraType() {
   Object.assign(CONFIG.ActiveEffect.dataModels, {
     "auraeffects.aura": AuraActiveEffectData
   });
+}
+
+function registerAuraSheet() {
+  const defaultAESheet = Object.values(CONFIG.ActiveEffect.sheetClasses.base).find(d => d.default)?.cls;
+  const AuraActiveEffectSheet = AuraActiveEffectSheetMixin(defaultAESheet ?? foundry.applications.sheets.ActiveEffectConfig);
   foundry.applications.apps.DocumentSheetConfig.registerSheet(ActiveEffect, "auraeffects", AuraActiveEffectSheet, {
     label: "AURAEFFECTS.SHEETS.AuraActiveEffectSheet",
     types: ["auraeffects.aura"],
@@ -351,7 +355,7 @@ Hooks.once("init", () => {
 });
 
 Hooks.once("ready", () => {
-  overrideSheets();
+  registerAuraSheet();
   game.modules.get("auraeffects").api = api;
   if (game.user.isActiveGM) migrate();
 });
