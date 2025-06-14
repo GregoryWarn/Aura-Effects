@@ -20,7 +20,7 @@ In the 5e system, "Aura of Protection" is an aura that paladins get which provid
 - Ensure the aura applies to the source
 - Set disposition to only affect friendly tokens
 - Ensure it _cannot_ stack
-- Define the formula to be used for determining "best" aura to the bonus that will be granted
+- Define the formula to be used for determining "best" aura to apply (in this case, the bonus that will be granted)
 - Set the changes to evaluate _prior_ to application (this ensures that the _paladin_'s charisma mod will be granted, not each target's own charisma mod)
 - The rest is up to your discretion as a user/GM
 
