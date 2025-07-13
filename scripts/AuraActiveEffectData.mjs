@@ -86,8 +86,8 @@ export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel
           this.parent.changes = [];
           this.parent.statuses = new Set();
         } else {
-          this.parent.changes = this.stashedChanges;
-          this.parent.statuses = this.stashedStatuses;
+          if (this.stashedChanges?.length) this.parent.changes = this.stashedChanges;
+          if (this.stashedStatuses?.size) this.parent.statuses = this.stashedStatuses;
         }
       }
     }

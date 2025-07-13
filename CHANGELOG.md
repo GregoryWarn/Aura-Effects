@@ -1,5 +1,8 @@
 # Aura Effects Changelog
 
+## Version 1.2.1
+- Fixed a bug where effects with conditional scripts would sometimes not apply to self when set to
+
 ## Version 1.2.0
 - Aura Effects aura sheet now extends whatever the base active effect sheet is set to be. This should make it compatible with modules or systems which override the base AE sheet without requiring explicit code to do so (Thanks @mclemente for the idea & implementation!)
   - Removed plugin behavior, as this should no longer be necessary
