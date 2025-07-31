@@ -1,5 +1,10 @@
 # Aura Effects Changelog
 
+## Version 1.2.2
+- Fixed a bug where effects wouldn't immediately act as auras upon application
+- Fixed a bug where updating an aura effect didn't result in a re-evaluation of who should have it
+- Added Italian localization (thanks GregoryWarn!)
+
 ## Version 1.2.1
 - Fixed a bug where effects with conditional scripts would sometimes not apply to self when set to
 

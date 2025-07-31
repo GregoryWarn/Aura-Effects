@@ -24,7 +24,7 @@ async function addRemoveEffect(effect, options, userId) {
   if (!effect.modifiesActor || !(effect.target instanceof Actor)) return;
   // Avoid calling this every time we add/remove an aura effect. Might miss some weird conditionals, but saves time
   if (foundry.utils.getProperty(effect, 'flags.auraeffects.fromAura')) return;
-  // Exit early for non-initiators, if no active GM, or if non-movement update
+  // Exit early for non-initiators or if no active GM
   if (game.user.id !== userId) return;
   const activeGM = game.users.activeGM;
   if (!activeGM) {
@@ -38,12 +38,11 @@ async function addRemoveEffect(effect, options, userId) {
   const [mainToken] = effect.target.getActiveTokens(false, true);
   if (!mainToken) return;
 
-  // Handle source effect condition re-evaluation
+  // Handle source effect condition re-evaluation, or just first-time evaluation
   const actorToEffectsMap = {};
   const toDelete = [];
   for (const sourceEffect of activeSourceEffects) {
-    const { distance: radius, disposition, collisionTypes, script } = sourceEffect.system;
-    if (!script) continue;
+    const { distance: radius, disposition, collisionTypes } = sourceEffect.system;
     await sourceEffect.prepareData();
     const nearby = getNearbyTokens(mainToken, radius, { disposition, collisionTypes });
     if (!nearby.length) continue;
@@ -212,7 +211,7 @@ async function moveToken(token, movement, operation, user) {
 async function updateActiveEffect(effect, updates, options, userId) {
   if (game.user.id !== userId) return;
   if (effect.type !== "auraeffects.aura") return;
-  if (!updates.hasOwnProperty("disabled")) return;
+  if (!updates.hasOwnProperty("disabled") && !updates.hasOwnProperty("system")) return;
   if (!canvas.scene) return;
   const actor = (effect.parent instanceof Actor) ? effect.parent : effect.parent?.parent;
   const [token] = actor?.getActiveTokens(false, true) ?? [];
@@ -225,21 +224,29 @@ async function updateActiveEffect(effect, updates, options, userId) {
     }
     return;
   }
-  if (updates.disabled) {
-    const toRemoveAppliedEffects = canvas.scene.tokens
-      .filter(t => t.actor && (t.actor !== actor))
-      .flatMap(t => t.actor.appliedEffects)
-      .filter(e => e.flags?.auraeffects?.fromAura && e.origin === effect.uuid);
-    await removeAndReplaceAuras(toRemoveAppliedEffects, canvas.scene);
-  } else {
+
+  // Since this change either disabled the effect or modified its parameters, get all currently-applied effects
+  let toRemoveAppliedEffects = canvas.scene.tokens
+    .filter(t => t.actor && (t.actor !== actor))
+    .flatMap(t => t.actor.appliedEffects)
+    .filter(e => e.flags?.auraeffects?.fromAura && e.origin === effect.uuid);
+
+  if (!updates.disabled) {
     // TODO: Maybe refactor this logic so that it can be utilized in the main updateToken function
     const { distance: radius, disposition, collisionTypes } = effect.system;
     if (!radius) return;
-    const tokensInRange = getNearbyTokens(token, radius, { disposition, collisionTypes }).map(t => t.actor)
-    const toAddTo = tokensInRange.filter(a => (a !== token.actor) && !a?.effects.find(e => e.origin === effect.uuid)).map(a => a?.uuid);
-    const actorToEffectsMap = Object.fromEntries(toAddTo.map(actorUuid => [actorUuid, [effect.uuid]]));
+    const tokensInRange = getNearbyTokens(token, radius, { disposition, collisionTypes }).filter(t => t !== token && t.actor !== token.actor);
+    const shouldHave = tokensInRange.filter(t => executeScript(token, t, effect)).map(t => t.actor);
+    
+    // Remove the "to delete" effects which should actually exist
+    toRemoveAppliedEffects = toRemoveAppliedEffects.filter(e => !shouldHave.includes(e.target));
+
+    // Don't try to apply the effect if already applied
+    const toAddTo = shouldHave.filter(a => !a.effects.find(e => e.origin === effect.uuid));
+    const actorToEffectsMap = Object.fromEntries(toAddTo.map(a => [a.uuid, [effect.uuid]]));
     if (!foundry.utils.isEmpty(actorToEffectsMap)) await activeGM.query("auraeffects.applyAuraEffects", actorToEffectsMap);
   }
+  if (toRemoveAppliedEffects.length) await removeAndReplaceAuras(toRemoveAppliedEffects, canvas.scene);
 }
 
 /**
