@@ -2,7 +2,6 @@ import { DISPOSITIONS } from "./constants.mjs";
 
 /**
  * Migrates Active Auras to Aura Effects on all world actors & items, and all _unlocked_ compendium actors & items
- * @returns A Promise that resolves when all possible documents have been migrated
  */
 async function migrateActiveAuras() {
   const existingAlert = ui.notifications.info("AURAEFFECTS.Migrations.ActiveAurasBegin", { permanent: true, localize: true });
@@ -14,28 +13,33 @@ async function migrateActiveAuras() {
   const allWorldActors = Object.values(game.actors.tokens).concat(Object.values(game.actors.contents));
   const allWorldItems = allWorldActors.flatMap(i => Object.values(i.items.contents)).concat(Object.values(game.items.contents));
   const allWorldParents = allWorldActors.concat(allWorldItems);
-  const allCompendiumActors = (await Promise.all(
-    game.packs.filter(p => p.metadata.type === "Actor" && !p.locked).map(p => p.getDocuments())
-  )).flat();
-  const allCompendiumItems = allCompendiumActors.flatMap(i => Object.values(i.items.contents)).concat((await Promise.all(
-    game.packs.filter(p => p.metadata.type === "Item" && !p.locked).map(p => p.getDocuments())
-  )).flat());
-  const allCompendiumParents = allCompendiumActors.concat(allCompendiumItems);
-  const allParents = allWorldParents.concat(allCompendiumParents);
-  return Promise.all(allParents.map(document => {
-    let allEffectDiffs = [];
-    for (const effect of document.effects) {
-      if (!effect.flags?.ActiveAuras) continue;
-      allEffectDiffs.push(getMigratedEffectData(effect, oldSettings));
-    }
-    return document.updateEmbeddedDocuments("ActiveEffect", allEffectDiffs);
-  })).then(() => {
-    existingAlert.remove();
-    ui.notifications.success("AURAEFFECTS.Migrations.ActiveAurasComplete", { localize: true });
-  });
+  await Promise.all(allWorldParents.map(document => migrateDocument(document, oldSettings)));
+  const allActorPacks = game.packs.filter(p => p.metadata.type === "Actor" && !p.locked);
+  for (const pack of allActorPacks) {
+    console.log("Aura Effects: migrating pack", pack.metadata.id)
+    const actors = await pack.getDocuments();
+    const allParents = actors.concat(actors.flatMap(i => Object.values(i.items.contents)));
+    await Promise.all(allParents.map(document => migrateDocument(document, oldSettings)));
+  }
+  const allItemPacks = game.packs.filter(p => p.metadata.type === "Item" && !p.locked);
+  for (const pack of allItemPacks) {
+    console.log("Aura Effects: migrating pack", pack.metadata.id)
+    const items = await pack.getDocuments();
+    await Promise.all(items.map(document => migrateDocument(document, oldSettings)));
+  }
+  existingAlert.remove();
+  ui.notifications.success("AURAEFFECTS.Migrations.ActiveAurasComplete", { localize: true });
 }
 
 // API Helpers
+async function migrateDocument(document, oldSettings) {
+  let allEffectDiffs = [];
+  for (const effect of document.effects) {
+    if (!effect.flags?.ActiveAuras) continue;
+    allEffectDiffs.push(getMigratedEffectData(effect, oldSettings));
+  }
+  return document.updateEmbeddedDocuments("ActiveEffect", allEffectDiffs);
+}
 function getMigratedEffectData(oldEffect, oldSettings) {
   const {
     // isAura -> become the new type
