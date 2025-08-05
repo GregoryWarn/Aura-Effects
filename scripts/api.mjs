@@ -113,7 +113,7 @@ function getMigratedEffectData(oldEffect, oldSettings) {
         newCustomCheck += `(${wildcard ? "" : "!"}actor.isWildcard)`;
       }
     }
-    diffEffectData.type = "ActiveAuras.aura";
+    diffEffectData.type = "auraeffects.aura";
     diffEffectData["==system"] = {
       applyToSelf: !ignoreSelf,
       collisionTypes: wallsBlock === "system"
