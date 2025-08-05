@@ -14,10 +14,13 @@ async function migrateActiveAuras() {
   const allWorldActors = Object.values(game.actors.tokens).concat(Object.values(game.actors.contents));
   const allWorldItems = allWorldActors.flatMap(i => Object.values(i.items.contents)).concat(Object.values(game.items.contents));
   const allWorldParents = allWorldActors.concat(allWorldItems);
-  const allCompendiumParents = (await Promise.all(
-    game.packs.filter(p => ["Actor", "Item"].includes(p.metadata.type) && !p.locked)
-              .map(p => p.getDocuments())
+  const allCompendiumActors = (await Promise.all(
+    game.packs.filter(p => p.metadata.type === "Actor" && !p.locked).map(p => p.getDocuments())
   )).flat();
+  const allCompendiumItems = allCompendiumActors.flatMap(i => Object.values(i.items.contents)).concat((await Promise.all(
+    game.packs.filter(p => p.metadata.type === "Item" && !p.locked).map(p => p.getDocuments())
+  )).flat());
+  const allCompendiumParents = allCompendiumActors.concat(allCompendiumItems);
   const allParents = allWorldParents.concat(allCompendiumParents);
   return Promise.all(allParents.map(document => {
     let allEffectDiffs = [];

@@ -1,5 +1,9 @@
 # Aura Effects Changelog
 
+## Version 1.2.4
+- Ensure migration script operates on items of compendium actors as well
+- Added Brazilian Portuguese localization (thanks Kharmans!)
+
 ## Version 1.2.3
 - Fixed a bug in the migration script
 
