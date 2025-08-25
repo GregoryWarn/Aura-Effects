@@ -1,5 +1,8 @@
 # Aura Effects Changelog
 
+## Version 1.2.6
+- Added Czech localization (thanks Lethrendis!)
+
 ## Version 1.2.5
 - Make migration go one pack at a time, resolving memory issues
 - Added console logs to the migration script
