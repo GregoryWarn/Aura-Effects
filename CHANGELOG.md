@@ -1,5 +1,8 @@
 # Aura Effects Changelog
 
+## Version 1.2.7
+- Added a guard against actorless tokens. Still not supported (and the console warning says as much) but should no longer error
+
 ## Version 1.2.6
 - Added Czech localization (thanks Lethrendis!)
 
