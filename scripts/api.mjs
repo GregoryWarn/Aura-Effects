@@ -10,15 +10,16 @@ async function migrateActiveAuras() {
       ? game.settings.get("ActiveAuras", "wall-block") ? ["move"] : []
       : game.settings.storage.get("world").find(s => s.key === "ActiveAuras.wall-block")?.value ? ["move"] : []
   }
-  const allWorldActors = Object.values(game.actors.tokens).concat(Object.values(game.actors.contents));
-  const allWorldItems = allWorldActors.flatMap(i => Object.values(i.items.contents)).concat(Object.values(game.items.contents));
+  const allSyntheticActors = game.scenes.map(s => s.tokens.filter(t => t.actor?.isToken).map(t => t.actor)).flat();
+  const allWorldActors = allSyntheticActors.concat(...game.actors).filter(a => a);
+  const allWorldItems = allWorldActors.flatMap(a => a.items.contents).concat(...game.items).filter(i => i);
   const allWorldParents = allWorldActors.concat(allWorldItems);
   await Promise.all(allWorldParents.map(document => migrateDocument(document, oldSettings)));
   const allActorPacks = game.packs.filter(p => p.metadata.type === "Actor" && !p.locked);
   for (const pack of allActorPacks) {
     console.log("Aura Effects: migrating pack", pack.metadata.id)
     const actors = await pack.getDocuments();
-    const allParents = actors.concat(actors.flatMap(i => Object.values(i.items.contents)));
+    const allParents = actors.flatMap(a => [a, ...a.items]);
     await Promise.all(allParents.map(document => migrateDocument(document, oldSettings)));
   }
   const allItemPacks = game.packs.filter(p => p.metadata.type === "Item" && !p.locked);

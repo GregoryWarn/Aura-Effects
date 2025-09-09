@@ -1,5 +1,9 @@
 # Aura Effects Changelog
 
+## Version 1.2.8
+- Further guard against actorless tokens, during _migration_ this time
+- Also grab _all_ synthetic actors during migration, rather than only those on the viewed scene
+
 ## Version 1.2.7
 - Added a guard against actorless tokens. Still not supported (and the console warning says as much) but should no longer error
 
