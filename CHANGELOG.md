@@ -1,5 +1,9 @@
 # Aura Effects Changelog
 
+## Version 1.3.0
+- Now hooks on token creation/deletion to apply/remove Aura Effects appropriately
+- Fixed a bug where dragging certain actors onto the canvas would infinitely loop data preparation
+
 ## Version 1.2.8
 - Further guard against actorless tokens, during _migration_ this time
 - Also grab _all_ synthetic actors during migration, rather than only those on the viewed scene

@@ -80,7 +80,9 @@ export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel
     } else {
       const token = actor?.getActiveTokens(false, true)[0];
       if (token) {
-        if (!executeScript(token, token, this.parent)) {
+        // Don't try to execute the script for synthetic actors that haven't yet had their delta prepared, lest we enter a loop
+        const deltaPrepped = !actor.isToken || Object.getOwnPropertyDescriptor(token, "delta")?.value;
+        if (deltaPrepped && !executeScript(token, token, this.parent)) {
           this.stashedChanges = this.parent.changes;
           this.stashedStatuses = this.parent.statuses;
           this.parent.changes = [];

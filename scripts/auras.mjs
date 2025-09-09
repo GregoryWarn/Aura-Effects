@@ -75,6 +75,71 @@ async function addRemoveEffect(effect, options, userId) {
   if (toDelete) await removeAndReplaceAuras(toDelete, mainToken.parent);
 }
 
+
+/**
+ * Provided the arguments for the createToken hook, checks whether any auras should be applied & applies if so
+ * @param {TokenDocument} token   The token being created
+ * @param {Object} options        Additional options
+ * @param {String} userId         The initiating User's ID
+ */
+async function createToken(token, options, userId) {
+  // Exit early for non-initiators, or if no active GM
+  if (game.user.id !== userId) return;
+  const activeGM = game.users.activeGM;
+  if (!activeGM) {
+    if (!seenWarning) {
+      ui.notifications.warn("AURAEFFECTS.NoActiveGM", { localize: true });
+      seenWarning = true;
+    }
+    return;
+  }
+  if (!token.actor) return;
+  const [activeSourceEffects] = getAllAuraEffects(token.actor);
+  const actorToEffectsMap = {};
+  for (const effect of activeSourceEffects) {
+    const { distance: radius, disposition, collisionTypes } = effect.system;
+    if (!radius) continue;
+    const inRange = new Set(
+      getNearbyTokens(token, radius, { disposition, collisionTypes })
+      .filter(t => executeScript(token, t, effect))
+      .map(t => t.actor)
+    );
+    const toAddTo = Array.from(inRange.filter(a => (a !== token.actor) && !a?.effects.find(e => e.origin === effect.uuid))).map(a => a?.uuid);
+    for (const actorUuid of toAddTo) {
+      actorToEffectsMap[actorUuid] = (actorToEffectsMap[actorUuid] ?? []).concat(effect.uuid);
+    }
+  }
+  if (!foundry.utils.isEmpty(actorToEffectsMap)) await activeGM.query("auraeffects.applyAuraEffects", actorToEffectsMap);
+}
+
+/**
+ * Provided the arguments for the deleteToken hook, removes any auras originating from the deleted token
+ * @param {TokenDocument} token   The token being deleted
+ * @param {Object} options        Additional options
+ * @param {String} userId         The initiating User's ID
+ */
+async function deleteToken(token, options, userId) {
+  if (game.user.id !== userId) return;
+  if (!canvas.scene) return;
+  const actor = token.actor;
+  if (!actor) return;
+  const activeGM = game.users.activeGM;
+  if (!activeGM) {
+    if (!seenWarning) {
+      ui.notifications.warn("AURAEFFECTS.NoActiveGM", { localize: true });
+      seenWarning = true;
+    }
+    return;
+  }
+  const [activeSourceEffects] = getAllAuraEffects(actor);
+  const auraSourceUuids = activeSourceEffects.map(e => e.uuid);
+  const toRemoveAppliedEffects = canvas.scene.tokens
+    .filter(t => t.actor && (t.actor !== actor))
+    .flatMap(t => t.actor.appliedEffects)
+    .filter(e => e.flags?.auraeffects?.fromAura && auraSourceUuids.includes(e.origin));
+  await removeAndReplaceAuras(toRemoveAppliedEffects, canvas.scene);
+}
+
 /**
  * Provided the arguments for the updateToken hook, checks whether any updates should cause a change in
  * auras (e.g. a token becoming hidden or un-hidden) and applies those changes
@@ -85,7 +150,7 @@ async function addRemoveEffect(effect, options, userId) {
  */
 async function updateToken(token, updates, options, userId) {
   updateTokenVisualization(token, updates);
-  // Exit early for non-initiators, if no active GM, or if non-movement update
+  // Exit early for non-initiators, or if no active GM
   if (game.user.id !== userId) return;
   const activeGM = game.users.activeGM;
   if (!activeGM) {
@@ -317,11 +382,15 @@ function registerHooks() {
   // Effect application/removal-specific hooks
   Hooks.on("createActiveEffect", addRemoveEffect);
   Hooks.on("deleteActiveEffect", addRemoveEffect);
+  Hooks.on("createToken", createToken);
+  Hooks.on("deleteToken", deleteToken);
   Hooks.on("updateToken", updateToken);
   Hooks.on("moveToken", moveToken);
-  Hooks.on("renderActiveEffectConfig", injectAuraButton);
   Hooks.on("updateActiveEffect", updateActiveEffect);
   Hooks.on("deleteActiveEffect", deleteActiveEffect);
+
+  // UI hooks
+  Hooks.on("renderActiveEffectConfig", injectAuraButton);
 
   // Visualization-specific hooks
   Hooks.on("canvasInit", canvasInit)
