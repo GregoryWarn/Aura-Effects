@@ -241,7 +241,7 @@ async function moveToken(token, movement, operation, user) {
     const toDelete = Array.from(preMoveRange.difference(postMoveRange)).map(a => a.effects.find(e => e.origin === effect.uuid));
 
     // Grab any lingering effects from now-inactive auras, too
-    const additionalDeletion = token.parent.tokens.map(t => t.actor.appliedEffects.filter(e => inactiveUuids.includes(e.origin))).flat();
+    const additionalDeletion = token.parent.tokens.map(t => t.actor?.appliedEffects.filter(e => inactiveUuids.includes(e.origin)) ?? []).flat();
 
     await removeAndReplaceAuras(toDelete.concat(additionalDeletion).filter(e => e), token.parent);
 

@@ -1,5 +1,8 @@
 # Aura Effects Changelog
 
+## Version 1.3.1
+- Fixed a bug with actorless tokens, hopefully for the last time
+
 ## Version 1.3.0
 - Now hooks on token creation/deletion to apply/remove Aura Effects appropriately
 - Fixed a bug where dragging certain actors onto the canvas would infinitely loop data preparation

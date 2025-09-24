@@ -111,6 +111,7 @@ function getNearbyTokens(source, radius, { origin, disposition = 0, collisionTyp
   const putativeTokens = Array.from(getGenerallyWithin(source, radius))
     .map(t => t.document)
     .filter(t => {
+      if (!t.actor) return false;
       if (disposition < 0) return (source.disposition * t.disposition) === -1;
       if (disposition > 0) return (source.disposition === t.disposition);
       return true;
